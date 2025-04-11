@@ -1,5 +1,5 @@
 STUID = 2022K8009929032
-STUNAME = 郭子颖
+STUNAME = GZY
 
 # DO NOT modify the following code!!!
 
