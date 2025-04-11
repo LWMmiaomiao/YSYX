@@ -1,5 +1,5 @@
-STUID = ysyx_22040000
-STUNAME = 张三
+STUID = 2022K8009929032
+STUNAME = 郭子颖
 
 # DO NOT modify the following code!!!
 
