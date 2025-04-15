@@ -13,3 +13,7 @@
 /fceux-am
 /nvboard
 /am-kernels
+
+**/.vscode/
+**/.cache/
+**/*.json
