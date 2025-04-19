@@ -17,8 +17,10 @@
 #include <cpu/cpu.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <stdint.h>
 #include "sdb.h"
 #include "utils.h"
+#include "memory/paddr.h"
 
 static int is_batch_mode = false;
 
@@ -54,6 +56,122 @@ static int cmd_q(char *args) {
   return -1;
 }
 
+static int cmd_si(char *args) {
+  int steps = args ? atoi(args) : 1;
+  if (steps <= 0){
+    Log("[WARNING]:The input is illegal!\n");
+    steps = 1; // 对非法输入, 默认执行"si 1"
+  }
+  cpu_exec((uint64_t)steps);
+  return 0;
+}
+
+uint64_t eval_EXPR(char *args){
+  return strtol(args, NULL, 0);//TODO
+}
+
+static int cmd_info(char *args) {
+  char *arg = strtok(NULL, " ");
+  if (arg == NULL) {
+    Log("[WARNING]:The input is illegal!\n");
+  }
+  else if (strcmp(arg, "r") == 0) {
+    isa_reg_display();
+  }
+  else if (strcmp(arg, "w") == 0) {
+    watchpoint_display();
+  }
+  else {
+    Log("[WARNING]:The input \"%s\" is illegal!\n", args);
+  }
+  return 0;
+}
+
+static int cmd_x(char *args) {
+  char *arg = strtok(NULL, " ");
+  if(arg == NULL) {
+    Log("[WARNING]:The input is illegal!\n");
+    return 0;
+  }
+  int n = atoi(arg);
+  arg = strtok(NULL, " ");
+  if(arg == NULL) {
+    Log("[WARNING]:The input is illegal!\n");
+    return 0;
+  }
+  uint64_t addr = strtol(arg, NULL, 0); //TODO：eval_EXPR
+  printf("Examine memory addresses 0x%lx to 0x%lx.", addr, addr + 4 * n -1);
+  for(int i = 0; i < n; i++){
+    printf(ANSI_FG_BLUE "\n0x%lx:" ANSI_NONE, addr);
+    for(int j = 0; j < 4; j++){
+      printf(" 0x%02x ", (*(uint8_t *)(guest_to_host(addr + j))));
+    }
+    addr += 4;
+  }
+  printf("\n");
+  return 0;
+}
+
+static int cmd_p(char *args) {
+  char buff[64] = {'\0'};
+  char *arg;
+  while((arg = strtok(NULL, " ")) != NULL){
+    strcat(buff, arg);
+  }
+  if(buff[0] == '\0') {
+    Log("[WARNING]:The input is illegal!\n");
+    return 0;
+  }
+	bool flag = true;
+  uint32_t result = expr(buff, &flag);
+  if(flag == true){
+    printf("0x%x %d\n", result, result);
+  }
+  else{
+    Log("[WARNING]:The input is illegal!\n");
+  }
+  return 0 ;
+}
+
+static int cmd_w(char *args) {
+  char buff[64] = {'\0'};
+  char *arg;
+  while((arg = strtok(NULL, " ")) != NULL){
+    strcat(buff, arg);
+  }
+  if(buff[0] == '\0') {
+    Log("[WARNING]:The input is illegal!\n");
+    return 0;
+  }
+  bool flag = true;
+  WP *wp = new_wp();
+  strcpy(wp->expr, buff);
+  wp->old_val = expr(wp->expr, &flag);
+  if(flag == true){
+    printf("Set watchpoint with num %d, now the value is %ld\n", wp->NO, wp->old_val);
+  }
+  else{
+    Log("[WARNING]:The input is illegal!\n");
+  }
+  return 0 ;
+}
+
+static int cmd_d(char *args) {
+  char *arg = strtok(NULL, " ");
+  if(arg == NULL) {
+    Log("[WARNING]:The input is illegal!\n");
+    return 0;
+  }
+  int n = atoi(arg);
+  if(n < 0 || n >= NR_WP) {
+    Log("[WARNING]:The input is illegal!\n");
+    return 0;
+  }
+  free_wp(n);
+  return 0 ;
+}
+
+
 static int cmd_help(char *args);
 
 static struct {
@@ -64,6 +182,12 @@ static struct {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
+  { "si", "Step to the next machine instruction", cmd_si },
+  { "info", "Display information about registers or watchpoints", cmd_info },
+  {"x", "Examine memory contents starting from a specified address", cmd_x},
+  {"p", "Print the evaluated result of an expression containing register names", cmd_p},
+  {"w", "Pause the program when the value of the watchpoint changes", cmd_w},
+  {"d", "Delete a watchpoint by its numeric identifier", cmd_d},
 
   /* TODO: Add more commands */
 
@@ -79,13 +203,13 @@ static int cmd_help(char *args) {
   if (arg == NULL) {
     /* no argument given */
     for (i = 0; i < NR_CMD; i ++) {
-      printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
+      printf("%-4s - %s\n", cmd_table[i].name, cmd_table[i].description);
     }
   }
   else {
     for (i = 0; i < NR_CMD; i ++) {
       if (strcmp(arg, cmd_table[i].name) == 0) {
-        printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
+        printf("%-4s - %s\n", cmd_table[i].name, cmd_table[i].description);
         return 0;
       }
     }
