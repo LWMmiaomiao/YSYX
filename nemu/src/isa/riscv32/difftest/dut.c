@@ -22,7 +22,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
 		Log("pc is different");
 		return false;
 	}
-	for(int i = 0; i < MUXDEF(CONFIG_RVE, 16, 32); i++) {
+	for(int i = 0; i < ARRLEN(cpu.gpr); i++) {
 		if(ref_r->gpr[i] != cpu.gpr[i]) {
 			Log("reg[%d] is different after executing instruction at pc = " FMT_WORD, i, pc);
 			return false;

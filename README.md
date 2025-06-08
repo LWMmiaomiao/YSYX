@@ -8,6 +8,9 @@ bash init.sh subproject-name
 
 [lecture note]: https://ysyx.oscc.cc/docs/
 
+[命令]
+一键回归测试 make ARCH=$ISA-nemu run
+
 
 6.3
 实现iringbuf
@@ -16,6 +19,14 @@ bash init.sh subproject-name
 
 实现ftrace
     parse_args中接受传入NEMU的ELF文件
+    elf.h里相关内容没看完
+
+6.8
+修改完善vsnprintf
+
+
 [TODO]
-gdb: CFLAGS += -g -Og
-NEMUFLAGS += -e $(IMAGE).elf
+am-kernels/tests/目录下新增一个针对klib的测试集klib-tests
+重构ftrace代码
+
+__am_timer_uptime
