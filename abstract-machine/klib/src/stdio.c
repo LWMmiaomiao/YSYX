@@ -45,13 +45,18 @@ size_t itoa(int num, char* str, int radix, int uppercase, int prefix) {
 	return start_pos + i;
 }
 
+extern void putch(char ch);
 int printf(const char *fmt, ...) {
 	char buffer[1024];
 	va_list arg;
 	va_start(arg, fmt);
   
 	int ret = vsnprintf(buffer, sizeof(buffer), fmt, arg);  // 将格式化的内容保存在buffer中
-	putstr(buffer);
+	char *tmp = buffer;
+    while (*tmp != 0) {
+        putch(*tmp);
+        tmp++;
+    }
   
 	va_end(arg);
 	return ret;
@@ -259,8 +264,8 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
                 if (n > 0 && pos < n - 1) out[pos++] = '0';
             }
             
-            // 输出数字（反向）
-            for (int i = digits - 1; i >= 0; i--) {
+            // 输出数字
+            for (int i = 0; i < digits; i++) {
                 len++;
                 if (n > 0 && pos < n - 1) out[pos++] = num_buf[i];
             }

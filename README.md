@@ -25,8 +25,28 @@ bash init.sh subproject-name
 修改完善vsnprintf
 
 
+[QUE]
+abstract-machine/klib/include/klib.h中的#define __NATIVE_USE_KLIB__注释掉
+
+
 [TODO]
 am-kernels/tests/目录下新增一个针对klib的测试集klib-tests
 重构ftrace代码
 
-__am_timer_uptime
+circt.stage.ChiselStage.emitSystemVerilogFile(new cpu.ALU(), args, firtoolOptions)
+删除npc/build.mill、npc/playground/src/GCD.scala
+添加npc/playground/src/ALU.scala
+
+
+[HINT]
+map_read()和map_write()用于将地址addr映射到map所指示的目标空间, 并进行访问
+add_pio_map()函数用于为设备的初始化注册一个端口映射I/O的映射关系. pio_read()和pio_write()是面向CPU的端口I/O读写接口, 它们最终会调用map_read()和map_write(), 对通过add_pio_map()注册的I/O空间进行访问.
+paddr_read()和paddr_write()会判断地址addr落在物理内存空间还是设备空间.pmem_read()和pmem_write()来访问真正的物理内存.map_read()和map_write()来访问相应的设备
+
+
+
+[RUN]
+nemu/目录下编译并运行NEMU:make run
+make menuconfig
+make ARCH=riscv32-nemu run
+运行am-tests:make ARCH=riscv32-nemu run mainargs=v(mainargs的参数RTFC)

@@ -27,7 +27,7 @@ typedef struct {
   paddr_t low;
   paddr_t high;
   void *space;
-  io_callback_t callback;
+  io_callback_t callback; //回调函数, I/O读写时对设备和目标空间的状态进行更新
 } IOMap;
 
 static inline bool map_inside(IOMap *map, paddr_t addr) {
