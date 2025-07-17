@@ -8,13 +8,17 @@ Context* __am_irq_handle(Context *c) {
   if (user_handler) {
     Event ev = {0};
     switch (c->mcause) {
+      case MCAUSE_ECALL_U:
+      case MCAUSE_ECALL_S:
+      case MCAUSE_ECALL_M:
+        ev.event = EVENT_YIELD;
+        break;
       default: ev.event = EVENT_ERROR; break;
     }
 
     c = user_handler(ev, c);
     assert(c != NULL);
   }
-
   return c;
 }
 
@@ -23,7 +27,8 @@ extern void __am_asm_trap(void);
 bool cte_init(Context*(*handler)(Event, Context*)) {
   // initialize exception entry
   asm volatile("csrw mtvec, %0" : : "r"(__am_asm_trap));
-
+  uint32_t mstatus_value = 0x1800;
+  asm volatile("csrw mstatus, %0" : : "r"(mstatus_value));
   // register event handler
   user_handler = handler;
 
@@ -38,7 +43,7 @@ void yield() {
 #ifdef __riscv_e
   asm volatile("li a5, -1; ecall");
 #else
-  asm volatile("li a7, -1; ecall");
+  asm volatile("li a7, -1; ecall"); //机器一直运行在M-mode模式下, mcause的difftest无法通过, 需改为11
 #endif
 }
 

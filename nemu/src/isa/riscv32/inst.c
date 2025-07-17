@@ -18,6 +18,10 @@
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
 #include "../../monitor/sdb/trace.h"
+#include <isa.h>
+#include "include/isa-reg.h"
+
+static int rs1, rs2, rd;
 
 #define FTRACE_JAL do {if(rd == 1) trace_func(s->dnpc, 0);} while(0)
 
@@ -30,11 +34,12 @@
 //s->isa.inst == 0x00008067
 
 #define R(i) gpr(i)
+#define CSR(i) cpu.csr[check_reg_idx(i)]
 #define Mr vaddr_read
 #define Mw vaddr_write
 
 enum {
-  TYPE_I, TYPE_U, TYPE_S, TYPE_R, TYPE_B, TYPE_J, 
+  TYPE_I, TYPE_U, TYPE_S, TYPE_R, TYPE_B, TYPE_J, TYPE_CSR,
   TYPE_N, // none
 };
 
@@ -61,8 +66,8 @@ enum {
 
 static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_t *imm, int type) {
   uint32_t i = s->isa.inst;
-  int rs1 = BITS(i, 19, 15);
-  int rs2 = BITS(i, 24, 20);
+  rs1 = BITS(i, 19, 15);
+  rs2 = BITS(i, 24, 20);
   *rd     = BITS(i, 11, 7);
   switch (type) {
     case TYPE_I: src1R();          immI(); break;
@@ -71,6 +76,7 @@ static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_
     case TYPE_R: src1R(); src2R(); 	       break;
     case TYPE_B: src1R(); src2R(); immB(); break;
     case TYPE_J:		               immJ(); break;
+    case TYPE_CSR: src1R(); *imm = BITS(i, 31, 20); break;
     case TYPE_N:                           break;
     default: panic("unsupported type = %d", type);
   }
@@ -78,13 +84,16 @@ static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_
 }
 
 static int decode_exec(Decode *s) {
+  word_t csr_idx;
+	int csr_uimm;
   s->dnpc = s->snpc;
 
 #define INSTPAT_INST(s) ((s)->isa.inst)
 #define INSTPAT_MATCH(s, name, type, ... /* execute body */ ) { \
-  int rd = 0; \
+  rd = 0; \
   word_t src1 = 0, src2 = 0, imm = 0; \
   decode_operand(s, &rd, &src1, &src2, &imm, concat(TYPE_, type)); \
+  csr_idx = imm; csr_uimm = rs1; \
   __VA_ARGS__ ; \
 }
 
@@ -143,6 +152,15 @@ static int decode_exec(Decode *s) {
 
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
+
+  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, isa_raise_intr(8, s));
+  INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , CSR, R(rd) = CSR(csr_idx); CSR(csr_idx) = src1);
+	INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , CSR, R(rd) = CSR(csr_idx); CSR(csr_idx) |= src1);
+	INSTPAT("??????? ????? ????? 011 ????? 11100 11", csrrc  , CSR, R(rd) = CSR(csr_idx); CSR(csr_idx) &= ~src1);
+	INSTPAT("??????? ????? ????? 101 ????? 11100 11", csrrwi , CSR, R(rd) = CSR(csr_idx); CSR(csr_idx) = csr_uimm);
+	INSTPAT("??????? ????? ????? 110 ????? 11100 11", csrrsi , CSR, R(rd) = CSR(csr_idx); CSR(csr_idx) |= csr_uimm);
+	INSTPAT("??????? ????? ????? 111 ????? 11100 11", csrrci , CSR, R(rd) = CSR(csr_idx); CSR(csr_idx) &= ~csr_uimm);
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, s->dnpc = CSR(0x341); CSR(0x300) = 0);
   INSTPAT_END();
 
   R(0) = 0; // reset $zero to 0
