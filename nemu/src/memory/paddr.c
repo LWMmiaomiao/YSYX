@@ -31,11 +31,17 @@ paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
 
 static word_t pmem_read(paddr_t addr, int len) {
   word_t ret = host_read(guest_to_host(addr), len);
+  // 总是读取地址为`raddr & ~0x3u`的4字节并返回
+  // if (raddr == 时钟地址) { 返回当前时间 }
   return ret;
 }
 
 static void pmem_write(paddr_t addr, int len, word_t data) {
   host_write(guest_to_host(addr), len, data);
+  // 总是往地址为`waddr & ~0x3u`的4字节按写掩码`wmask`写入`wdata`
+  // `wmask`中每比特表示`wdata`中1个字节的掩码,
+  // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
+  // if (waddr == 串口地址) { putchar(...) }
 }
 
 static void out_of_bound(paddr_t addr) {

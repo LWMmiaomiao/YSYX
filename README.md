@@ -37,6 +37,9 @@ circt.stage.ChiselStage.emitSystemVerilogFile(new cpu.ALU(), args, firtoolOption
 删除npc/build.mill、npc/playground/src/GCD.scala
 添加npc/playground/src/ALU.scala
 
+RV32E的NPC上实现串口和时钟，pmem_read
+
+02.basic/15.RV32E
 
 [HINT]
 map_read()和map_write()用于将地址addr映射到map所指示的目标空间, 并进行访问
@@ -50,3 +53,11 @@ nemu/目录下编译并运行NEMU:make run
 make menuconfig
 make ARCH=riscv32-nemu run
 运行am-tests:make ARCH=riscv32-nemu run mainargs=v(mainargs的参数RTFC)
+verilator --cc --exe --build -j -Wall sim_main.cpp top.v
+verilator --trace --cc -y vsrc/ vsrc/top.v --exe csrc/sim_main_trace.cpp --build
+./obj_dir/Vtop
+gtkwave wave.vcd
+
+
+verilator --cc --exe --build -j -Wall csrc/tb_rv32.cpp vsrc/rv32.v
+verilator --trace --cc -y vsrc/ vsrc/rv32.v --exe csrc/tb_rv32.cpp --build
