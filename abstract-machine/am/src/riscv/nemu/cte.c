@@ -11,7 +11,9 @@ Context* __am_irq_handle(Context *c) {
       case MCAUSE_ECALL_U:
       case MCAUSE_ECALL_S:
       case MCAUSE_ECALL_M:
+        putch('y'); 
         ev.event = EVENT_YIELD;
+        c->mepc += 4;
         break;
       default: ev.event = EVENT_ERROR; break;
     }

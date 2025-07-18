@@ -41,6 +41,9 @@ RV32E的NPC上实现串口和时钟，pmem_read
 
 02.basic/15.RV32E
 
+[npc]
+abstract-machine/scripts/riscv32mini-npc.mk
+
 [HINT]
 map_read()和map_write()用于将地址addr映射到map所指示的目标空间, 并进行访问
 add_pio_map()函数用于为设备的初始化注册一个端口映射I/O的映射关系. pio_read()和pio_write()是面向CPU的端口I/O读写接口, 它们最终会调用map_read()和map_write(), 对通过add_pio_map()注册的I/O空间进行访问.

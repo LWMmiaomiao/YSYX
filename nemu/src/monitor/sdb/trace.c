@@ -121,3 +121,10 @@ void trace_func(paddr_t addr, int op)
 	}
 	free(strtab);
 }
+
+#ifdef CONFIG_ETRACE
+void trace_trap(Decode *s) {
+	if(s->dnpc == cpu.csr[MTVEC])
+		log_write("SDB: (mcause = " FMT_WORD ") Hit trap at " FMT_WORD ", jump to " FMT_WORD "\n",cpu.csr[MCAUSE], s->pc, s->dnpc);
+}
+#endif

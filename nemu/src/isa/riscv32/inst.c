@@ -13,15 +13,18 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include "local-include/reg.h"
+//#include "local-include/reg.h"
 #include <cpu/cpu.h>
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
 #include "../../monitor/sdb/trace.h"
-#include <isa.h>
-#include "include/isa-reg.h"
+#include "isa.h"
+
 
 static int rs1, rs2, rd;
+
+
+#define ZEXT(x, len) ({ struct { uint64_t n : len; } __x = { .n = x }; (uint64_t)__x.n; })
 
 #define FTRACE_JAL do {if(rd == 1) trace_func(s->dnpc, 0);} while(0)
 
@@ -34,7 +37,7 @@ static int rs1, rs2, rd;
 //s->isa.inst == 0x00008067
 
 #define R(i) gpr(i)
-#define CSR(i) cpu.csr[check_reg_idx(i)]
+#define CSR(i) cpu.csr[check_csr_idx(i)]
 #define Mr vaddr_read
 #define Mw vaddr_write
 
@@ -76,7 +79,7 @@ static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_
     case TYPE_R: src1R(); src2R(); 	       break;
     case TYPE_B: src1R(); src2R(); immB(); break;
     case TYPE_J:		               immJ(); break;
-    case TYPE_CSR: src1R(); *imm = BITS(i, 31, 20); break;
+    case TYPE_CSR: src1R(); *imm = ZEXT(BITS(i, 31, 20), 12); break;
     case TYPE_N:                           break;
     default: panic("unsupported type = %d", type);
   }
@@ -151,16 +154,16 @@ static int decode_exec(Decode *s) {
   INSTPAT("??????? ????? ????? ??? ????? 11011 11", jal    , J, s->dnpc = s->pc + imm; R(rd) = s->snpc; IFDEF(CONFIG_FTRACE, FTRACE_JAL));
 
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
-  INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
 
-  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, isa_raise_intr(8, s));
+  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, isa_raise_intr(0xb, s));
   INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , CSR, R(rd) = CSR(csr_idx); CSR(csr_idx) = src1);
 	INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , CSR, R(rd) = CSR(csr_idx); CSR(csr_idx) |= src1);
 	INSTPAT("??????? ????? ????? 011 ????? 11100 11", csrrc  , CSR, R(rd) = CSR(csr_idx); CSR(csr_idx) &= ~src1);
 	INSTPAT("??????? ????? ????? 101 ????? 11100 11", csrrwi , CSR, R(rd) = CSR(csr_idx); CSR(csr_idx) = csr_uimm);
 	INSTPAT("??????? ????? ????? 110 ????? 11100 11", csrrsi , CSR, R(rd) = CSR(csr_idx); CSR(csr_idx) |= csr_uimm);
 	INSTPAT("??????? ????? ????? 111 ????? 11100 11", csrrci , CSR, R(rd) = CSR(csr_idx); CSR(csr_idx) &= ~csr_uimm);
-  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, s->dnpc = CSR(0x341); CSR(0x300) = 0);
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, isa_ret_intr(s));
+  INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
   INSTPAT_END();
 
   R(0) = 0; // reset $zero to 0
