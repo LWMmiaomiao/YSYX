@@ -8,7 +8,7 @@
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 //目前只实现%s和%d
 
-size_t itoa(int num, char* str, int radix, int uppercase, int prefix) {
+size_t my_itoa(int num, char* str, int radix, int uppercase, int prefix) {
 	static const char *digits_lower = "0123456789abcdef";
     static const char *digits_upper = "0123456789ABCDEF";
     if(num == 0){
@@ -212,7 +212,7 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         // 处理数字转换（除字符串外）
         if (spec != 's') {
             if (spec != 'c' && spec != '%') {
-                digits = itoa(num, num_buf, base, uppercase_hex, special_fmt);
+                digits = my_itoa(num, num_buf, base, uppercase_hex, special_fmt);
             }
             
             // 处理精度和零值

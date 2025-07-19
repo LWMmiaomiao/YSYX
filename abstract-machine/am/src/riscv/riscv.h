@@ -33,6 +33,8 @@ enum { MODE_U, MODE_S, MODE_M = 3 };
 #define MCAUSE_ECALL_U 8
 #define MCAUSE_ECALL_S 9
 #define MCAUSE_ECALL_M 11
+#define MCAUSE_IRQ_TIMER_S 0x80000005
+#define MCAUSE_IRQ_TIMER_M 0x80000007
 
 #endif
 
